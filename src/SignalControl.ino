@@ -3,23 +3,50 @@
 //-------------------
 int randomSignal = 0;
 int oldRandomSignal = 0;
+String serialString = "0";
+int randomLED = 2;
+int oldRandomLED = 0;
 
 // Zeiten für Signal wechsel.
-const int HP0_TIME = 3000;
-const int SIGNAL_TIME = 6000;
+const int HP0_TIME = 8000;
+const int SIGNAL_TIME = 15000;
+
+// Auswahl des Modus der starten soll.
+const int SIGNAL_MODE = 0;
+// Mode 0 - Random Signalbild
+// Mode 1 - Steuerung per Serial
+// Mode 2 - Party-Modus
 
 //----------------
 //|Setup und Loop|
 //----------------
 void setup() { 
-defineIO();
-setPinmode();
-checkLED();
-checkFade();
+  defineIO();
+  setPinmode();
+  checkLED();
+  checkFade();
+// Vorbereitungen für Modus
+  switch (SIGNAL_MODE){
+    case 1:
+      Serial.begin(9600);
+      break;
+  }
+changeSignalbild(0);
 }
 
 void loop() {
-  getRandomSignal();
+  // Loop je nach Modus.
+  switch (SIGNAL_MODE){
+    case 0:
+      getRandomSignal();
+      break;
+    case 1:
+      serialControl();
+      break;
+    case 2:
+      partyModus();
+      break;
+  }
 }
 
 //------------
@@ -67,12 +94,12 @@ void checkFade(){
     digitalWrite(pin, AN);
   }
   for (int bright = 255; bright >= 0; bright--){
-      analogWrite(FADEPIN, bright);
-      delayMicroseconds(700);
+    analogWrite(FADEPIN, bright);
+    delay(5);
     }
   for (int bright = 0; bright <= 255; bright++){
     analogWrite(FADEPIN, bright);
-    delayMicroseconds(700);
+    delay(5);
     }
   for(int pin = 2; pin <= 11; pin++){
     pinMode(pin, OUTPUT);
@@ -132,6 +159,30 @@ void changeSignalbild(int sBild){
       digitalWrite(HP_RED_1, AN);
       digitalWrite(HP_WHITE, AN);
       break;
+    case 8: // LED-Test Hauptsignal
+      digitalWrite(HP_RED_1, AN);
+      digitalWrite(HP_RED_2, AN);
+      digitalWrite(HP_GREEN, AN);
+      digitalWrite(HP_ORANGE, AN);
+      digitalWrite(HP_WHITE, AN);
+      break;
+    case 9: // LED-Test Vorsignal
+      digitalWrite(VR_GREEN_1, AN);
+      digitalWrite(VR_GREEN_2, AN);
+      digitalWrite(VR_ORANGE_1, AN);
+      digitalWrite(VR_ORANGE_2, AN);
+      break;
+    case 10: // LED-Test Haupt- und Vorsignal
+      digitalWrite(HP_RED_1, AN);
+      digitalWrite(HP_RED_2, AN);
+      digitalWrite(HP_GREEN, AN);
+      digitalWrite(HP_ORANGE, AN);
+      digitalWrite(HP_WHITE, AN);
+      digitalWrite(VR_GREEN_1, AN);
+      digitalWrite(VR_GREEN_2, AN);
+      digitalWrite(VR_ORANGE_1, AN);
+      digitalWrite(VR_ORANGE_2, AN);
+      break;
     default: //HP0
       digitalWrite(HP_RED_1, AN);
       digitalWrite(HP_RED_2, AN);
@@ -154,4 +205,23 @@ void getRandomSignal(){
   delay(SIGNAL_TIME);
   changeSignalbild(0);
   delay(HP0_TIME);
+}
+void serialControl(){
+  // Holt sich die Werte von Serial und setzt es in ein Signalbild um.
+  if (Serial.available() > 0) {
+    serialString = Serial.readString();
+    changeSignalbild(serialString.toInt());
+    Serial.println("Wechsel zu Signalbild Nr.: " + serialString);
+    }
+}
+void partyModus(){
+  // Party-Modus mit tollen bunten LEDs.
+  randomLED = random(2,11);
+  if (oldRandomLED == randomLED){
+    return;
+  } else {
+    digitalWrite(randomLED, AN);
+    delay(50);
+    digitalWrite(randomLED, AUS);
+  } 
 }
